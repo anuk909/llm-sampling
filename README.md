@@ -4,7 +4,7 @@ An interactive LLM sampling demonstration using llama.cpp with a browser-based v
 
 ![](web/example.png)
 
-[**See an online demo here.**](https://anuk909.github.io/llm-sampling/web/)
+[**See an online demo here**](https://anuk909.github.io/llm-sampling/web/)
 
 ## Supported Sampling Methods
 
