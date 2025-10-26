@@ -6,6 +6,8 @@ An interactive LLM sampling demonstration using llama.cpp with a browser-based v
 
 [**See an online demo here**](https://anuk909.github.io/llm-sampling/web/)
 
+Note: The probability distributions shown in the online demo were generated using the Gemma 3 1B model with Q4 quantization.
+
 ## Supported Sampling Methods
 
 The interactive visualization supports the following token sampling techniques:
