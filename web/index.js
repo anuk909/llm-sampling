@@ -251,7 +251,14 @@ const updatePagination = (totalPages) => {
 };
 
 $(() => {
-	$.get("probs.json", data => {
+	// Determine the base path for GitHub Pages compatibility
+	let basePath = window.location.pathname;
+	// Remove trailing slashes and file names to get the directory
+	if (!basePath.endsWith('/')) {
+		basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+	}
+
+	$.get(basePath + "probs.json", data => {
 		prompts = data;
 		window.currentPromptIndex = 0;
 		let promptsMenu = $("#promptsMenu"), option;
