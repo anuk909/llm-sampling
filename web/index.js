@@ -2,6 +2,8 @@
 
 let prompts;
 let max_tokens, vbar_width;
+let currentPage = 1;
+const itemsPerPage = 6;
 
 const samplers = {
 	temperature: (tokens, probs) => {
@@ -137,15 +139,11 @@ const normalize = (tokens, probs) => {
 };
 
 const update_prompt = () => {
-	let s = $("select#prompts");
-	let prompt = s.children()[s.val()].textContent;
-	s.closest('div.row').find('label')[0].textContent = prompt;
 	update_sample();
 };
 
 const update_sample = () => {
-	let i = $("select#prompts").val();
-	let tbody = $("div#retained tbody").empty()[0];
+	let i = window.currentPromptIndex !== undefined ? window.currentPromptIndex : 0;
 	let sum = 0.0;
 	let probs = JSON.parse(JSON.stringify(prompts[i][1]));
 	$("div#samplers div.alert:has(h3 > input:checked)").each((idx, el) => {
@@ -154,8 +152,20 @@ const update_sample = () => {
 	});
 	let tokens = Object.keys(probs);
 	probs = normalize(tokens, probs);
+
+	// Calculate pagination
+	const totalItems = tokens.length;
+	const totalPages = Math.ceil(totalItems / itemsPerPage);
+	currentPage = Math.min(currentPage, totalPages || 1);
+
+	const startIdx = (currentPage - 1) * itemsPerPage;
+	const endIdx = Math.min(startIdx + itemsPerPage, totalItems);
+	const pageTokens = tokens.slice(startIdx, endIdx);
+
+	// Populate table rows
+	let tbody = $("div#retained tbody").empty()[0];
 	let pcf = new Intl.NumberFormat(undefined, { style: "percent", maximumFractionDigits: 3, minimumFractionDigits: 3 });
-	for (let t of tokens) {
+	for (let t of pageTokens) {
 		let tr = document.createElement('tr');
 		let td = document.createElement('td');
 		tbody.appendChild(tr);
@@ -176,19 +186,92 @@ const update_sample = () => {
 		pbar.classList.add('bg-primary');
 		pbar.setAttribute('style', 'width: ' + (100.0 * probs[t] / probs[tokens[0]]).toFixed(2) + '%;')
 	}
+
+	// Update pagination
+	updatePagination(totalPages);
+};
+
+const updatePagination = (totalPages) => {
+	let paginationEl = $("#pagination").empty();
+
+	if (totalPages <= 1) {
+		return;
+	}
+
+	// Previous button
+	let prevLi = document.createElement('li');
+	prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+	let prevA = document.createElement('a');
+	prevA.className = 'page-link';
+	prevA.href = '#';
+	prevA.textContent = 'Previous';
+	prevA.addEventListener('click', (e) => {
+		e.preventDefault();
+		if (currentPage > 1) {
+			currentPage--;
+			update_sample();
+		}
+	});
+	prevLi.appendChild(prevA);
+	paginationEl.append(prevLi);
+
+	// Page numbers
+	for (let i = 1; i <= totalPages; i++) {
+		let li = document.createElement('li');
+		li.className = 'page-item' + (i === currentPage ? ' active' : '');
+		let a = document.createElement('a');
+		a.className = 'page-link';
+		a.href = '#';
+		a.textContent = i;
+		a.addEventListener('click', (e) => {
+			e.preventDefault();
+			currentPage = i;
+			update_sample();
+		});
+		li.appendChild(a);
+		paginationEl.append(li);
+	}
+
+	// Next button
+	let nextLi = document.createElement('li');
+	nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+	let nextA = document.createElement('a');
+	nextA.className = 'page-link';
+	nextA.href = '#';
+	nextA.textContent = 'Next';
+	nextA.addEventListener('click', (e) => {
+		e.preventDefault();
+		if (currentPage < totalPages) {
+			currentPage++;
+			update_sample();
+		}
+	});
+	nextLi.appendChild(nextA);
+	paginationEl.append(nextLi);
 };
 
 $(() => {
 	$.get("probs.json", data => {
 		prompts = data;
-		let select = $("select#prompts"), option;
+		window.currentPromptIndex = 0;
+		let promptsMenu = $("#promptsMenu"), option;
 		for (let i in prompts) {
-			option = document.createElement('option');
-			option.setAttribute('value', i);
-			option.textContent = prompts[i][0] + ' _____';
-			select.append(option);
+			let li = document.createElement('li');
+			let a = document.createElement('a');
+			a.className = 'dropdown-item';
+			a.href = '#';
+			a.textContent = prompts[i][0] + ' _____';
+			a.addEventListener('click', (e) => {
+				e.preventDefault();
+				window.currentPromptIndex = i;
+				$("#promptDropdownBtn").text(prompts[i][0] + ' _____');
+				update_prompt();
+			});
+			li.appendChild(a);
+			promptsMenu.append(li);
 		}
-		select.val(0).change().trigger('input');
+		$("#promptDropdownBtn").text(prompts[0][0] + ' _____');
+		update_sample();
 	});
 
 	let types = ["range", "text"];
@@ -203,8 +286,6 @@ $(() => {
 	vbar_width = 'width: calc(' + (100.0 / max_tokens).toFixed(2) + '% - 1px);';
 
 	$("[data-bs-toggle='tooltip']").each((i, e) => new bootstrap.Tooltip(e));
-	$("select#prompts").on('change', update_prompt);
-	$("select#prompts").on('input', update_prompt);
 	$("div#samplers input").on('input', update_sample);
 	$("div#samplers").sortable({ update: update_sample });
 });
