@@ -77,4 +77,4 @@ Edit `prompts.json` with your prompts:
 ["Your prompt here", "Another prompt here"]
 ```
 
-Results are saved to `probs.json`.
+Results are saved to `web/probs.json`.

@@ -12,7 +12,6 @@ const samplers = {
 		if ($("input#temperature-dyn").prop('checked')) {
 			let range = Math.min(T, $("input#temperature-dyn-range").val());
 			let expo = $("input#temperature-dyn-exponent").val();
-			/* reference: https://github.com/YellowRoseCx/koboldcpp-rocm/blob/main/llama.cpp#L10652-L10670 */
 			probs = normalize(tokens, probs);
 			let max_entropy = -Math.log(1.0 / tokens.length), entropy = 0.0;
 			for (let tok of tokens) {
@@ -26,7 +25,6 @@ const samplers = {
 		}
 		let sf = $("input#temperature-SS-SF").val();
 		if ($("input#temperature-SS").prop('checked') && sf > 0) {
-			/* reference: https://github.com/YellowRoseCx/koboldcpp-rocm/blob/main/llama.cpp#L10689-L10699 */
 			for (let tok of tokens) {
 				probs[tok] = probs[tokens[0]] * Math.exp(
 					-sf * Math.pow(Math.log(probs[tok] / probs[tokens[0]]), 2.0)
@@ -251,33 +249,21 @@ const updatePagination = (totalPages) => {
 };
 
 $(() => {
-	// Determine the base path for GitHub Pages compatibility
-	let basePath = window.location.pathname;
-	// Remove trailing slashes and file names to get the directory
-	if (!basePath.endsWith('/')) {
-		basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
-	}
-
-	$.get(basePath + "probs.json", data => {
+	$.get("./probs.json", data => {
 		prompts = data;
 		window.currentPromptIndex = 0;
-		let promptsMenu = $("#promptsMenu"), option;
+		let promptSelect = $("#promptSelect");
 		for (let i in prompts) {
-			let li = document.createElement('li');
-			let a = document.createElement('a');
-			a.className = 'dropdown-item';
-			a.href = '#';
-			a.textContent = prompts[i][0] + ' _____';
-			a.addEventListener('click', (e) => {
-				e.preventDefault();
-				window.currentPromptIndex = i;
-				$("#promptDropdownBtn").text(prompts[i][0] + ' _____');
-				update_prompt();
-			});
-			li.appendChild(a);
-			promptsMenu.append(li);
+			let option = document.createElement('option');
+			option.value = i;
+			option.textContent = prompts[i][0] + ' _____';
+			promptSelect.append(option);
 		}
-		$("#promptDropdownBtn").text(prompts[0][0] + ' _____');
+		promptSelect.on('change', (e) => {
+			window.currentPromptIndex = $(e.target).val();
+			update_prompt();
+		});
+		promptSelect.val(0);
 		update_sample();
 	});
 
